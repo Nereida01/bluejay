@@ -657,7 +657,7 @@ function get_rates_and_jacobian(n, p, t; globvars...)
     # Update Jrates
     n_cur_all = compile_ncur_all(n, n_short, GV.n_inactive; GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
 
-    update_Jrates!(n_cur_all; GV.Jratelist, GV.crosssection, GV.num_layers, GV.absorber, GV.dz, GV.solarflux)
+    update_Jrates!(n_cur_all; GV.Jratelist, GV.crosssection, GV.num_layers, GV.absorber, GV.dz, GV.solarflux, GV.non_bdy_layers)
     # copy all the Jrates into an external dictionary for storage
     for jr in GV.Jratelist                # time for this is ~0.000005 s
         global external_storage[jr] = n_cur_all[jr]
@@ -941,7 +941,7 @@ function update!(n_current::Dict{Symbol, Array{ftype_ncur, 1}}, t, dt; abstol=1e
     n_current = compile_ncur_all(nend, n_short, GV.n_inactive; GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
 
     # ensure Jrates are included in n_current
-    update_Jrates!(n_current; GV.Jratelist, GV.crosssection, GV.num_layers, GV.absorber, GV.dz, GV.solarflux)
+    update_Jrates!(n_current; GV.Jratelist, GV.crosssection, GV.num_layers, GV.absorber, GV.dz, GV.solarflux, GV.non_bdy_layers)
 
     return n_current
 end 
@@ -1045,7 +1045,9 @@ if adding_new_species==true
                 n_current[ni] = DH .* n_current[ni]
             end
         end
-    elseif converge_which == "both" 
+    elseif converge_which == "ions+nitrogen"
+        println("Converging neutrals and ions together. This list readout of inactive_species should be empty: $(inactive_species)")
+    elseif converge_which == "both"
         if occursin("PARAMETERS-conv3", paramfile)
             println("Converging N-bearing neutrals and ions together. This list readout of inactive_species should contain non-N-bearing neutrals: $(inactive_species)")
         else
@@ -1498,6 +1500,7 @@ const crosssection = populate_xsect_dict(photochem_data_files, xsecfolder; ion_x
 #                                                                              #
 # **************************************************************************** #
 solarflux = readdlm(code_dir*solarfile,'\t', Float64, comments=true, comment_char='#')[1:2000,:]
+#println(solarflux[:,1]), tying to see what solar flux was.
 solarflux[:,2] = solarflux[:,2] * cosd(SZA)  # Adjust the flux according to specified SZA
 
 # pad all cross-sections to solar

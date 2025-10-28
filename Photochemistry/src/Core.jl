@@ -222,15 +222,50 @@ function n_tot(atmdict::Dict{Symbol, Vector{ftype_ncur}}; ignore=[], globvars...
     return vec(sum(ndensities, dims=1)) 
 end
 
+#----------------------- Mystery Tau -----------------------------
+
+const λ = readdlm("/Users/nereida/Colorado Boulder/Eryn's Group/bluejay/Venus-Inputs/venussolarphotonflux_solarmean.dat",'\t', Float64, comments=true, comment_char='#')[1:2000, 1]
+
+function mystery_tau(λ; globvars...) #UVAbsorber
+    
+    GV = values(globvars)
+    
+    required = [:non_bdy_layers]
+    check_requirements(keys(GV), required)
+    
+    length_z = length(GV.non_bdy_layers)
+    length_λ = length(λ)
+    
+    tau = Array{Array{Float64}}(undef, length_z)
+    
+    for i in 1:length_z
+        
+        z = GV.non_bdy_layers[i]
+        
+        if z > 67.0e5           
+            tau[i] = 0.056.*exp.(-((z.- 67.0e5)./3.0).-((λ.-3600.0)./1000.0))
+        elseif 58.0e5 < z <= 67.0e5
+            tau[i] = 0.056.*exp.(-(λ.-3600.0)./1000.0)
+        else z >= 58.0e5
+            tau[i] = zeros(length_λ) 
+        end 
+    end
+    #println(typeof(tau))
+    return tau
+end   
+
+
+
+
 function optical_depth(n_cur_densities; globvars...)
     #=
     Given the current state (atmdict), this populates solarabs, a 1D array of 1D arrays 
     (which is annoying, but required for using BLAS.axpy! for some inscrutable reason) 
     with the optical depth of the atmosphere. The shape of solar abs is 124 elements, each 
     its own array of 2000 elements. 
-    =#
-    
+    =# 
     GV = values(globvars)
+    
     required = [:num_layers, :Jratelist, :absorber, :crosssection, :dz]
     check_requirements(keys(GV), required)
     
@@ -242,6 +277,7 @@ function optical_depth(n_cur_densities; globvars...)
         solarabs[i] = zeros(Float64, nlambda)
     end
     
+    
     for jspecies in GV.Jratelist
         species = GV.absorber[jspecies]
 
@@ -250,8 +286,6 @@ function optical_depth(n_cur_densities; globvars...)
         for ialt in [GV.num_layers:-1:1;]
             #get the (overhead) vertical column of the absorbing constituent
             jcolumn += convert(Float64, n_cur_densities[species][ialt])*GV.dz
-
-           
             # add the total extinction to solarabs:
             # multiplies air column density (N, #/cm^2) at all wavelengths by crosssection (σ)
             # to get optical depth (τ). This is an override of axpy! to use the
@@ -970,17 +1004,23 @@ function update_Jrates!(n_cur_densities::Dict{Symbol, Array{ftype_ncur, 1}}; nla
     =#
 
     GV = values(globvars)
-    required = [:absorber, :dz, :crosssection, :Jratelist, :num_layers, :solarflux]
+    required = [:absorber, :dz, :crosssection, :Jratelist, :num_layers, :solarflux, :non_bdy_layers]
     check_requirements(keys(GV), required)
 
     solarabs = optical_depth(n_cur_densities; globvars...)
+    tau = mystery_tau(λ; GV.non_bdy_layers)
+    
     # solarabs now records the total optical depth of the atmosphere at
     # each wavelength and altitude
+    
+    Abs = Vector{Vector{Float64}}(undef, GV.num_layers)
 
     # actinic flux at each wavelength is solar flux diminished by total
     # optical depth
     for ialt in [1:GV.num_layers;]
-        solarabs[ialt] = GV.solarflux[:,2] .* exp.(-solarabs[ialt])
+         Abs[ialt] = @. solarabs[ialt] + tau[ialt]
+         Abs[ialt] = GV.solarflux[:,2] .* exp.(-Abs[ialt])
+        #solarabs[ialt] = GV.solarflux[:,2] .* exp.(-solarabs[ialt]) 
     end
 
     # You can uncomment these to plot the extinction at each atmospheric level, but you have to feed it a specific Jrate
@@ -996,7 +1036,8 @@ function update_Jrates!(n_cur_densities::Dict{Symbol, Array{ftype_ncur, 1}}; nla
     for j in GV.Jratelist
         n_cur_densities[j] = zeros(GV.num_layers)
         for ialt in [1:GV.num_layers;]
-            n_cur_densities[j][ialt] = ftype_ncur(BLAS.dot(nlambda, solarabs[ialt], 1, GV.crosssection[j][ialt+1], 1))
+            n_cur_densities[j][ialt] = ftype_ncur(BLAS.dot(nlambda, Abs[ialt], 1, GV.crosssection[j][ialt+1], 1))
+            #n_cur_densities[j][ialt] = ftype_ncur(BLAS.dot(nlambda, solarabs[ialt], 1, GV.crosssection[j][ialt+1], 1))
         end
     end
 end
