@@ -430,7 +430,7 @@ function plot_extinction(solabs; fnextr="", path=nothing, tauonly=false, xsect_i
 
     title(titlestr)
     ax.set_xlim(0, 300)  # turn off to see full range to 2000 nm.
-    show()
+    #show()
     if path != nothing
         savefig(path*savestr, bbox_inches="tight")
         close(fig)
@@ -1573,3 +1573,27 @@ function turn_off_borders(ax)
         ax.spines[side].set_visible(false)
     end
 end
+
+function plot_Keddy_prof(nt::Vector,atmdict::Dict{Symbol, Vector{ftype_ncur}}, savepath::String; globvars...)
+    
+    GV = values(globvars)
+    required = [:planet, :alt, :n_alt_index, :all_species]
+    check_requirements(keys(GV), required)
+    
+    z = GV.alt
+    ncur_with_bdys = ncur_with_boundary_layers(atmdict; GV.n_alt_index, GV.all_species)
+    K = Keddy(GV.alt, n_tot(ncur_with_bdys; GV.all_species, GV.n_alt_index); GV.planet)
+    
+    fig, ax = subplots(figsize=(8,5))
+    # or: fig = figure(figsize=()), 
+    #     ax = gca()
+    ax.plot(K, z./1e5)
+    ax.set_xscale("log")
+    ax.set_xlabel("Eddy diffusion coefficient (cm^2/s)")
+    ax.set_ylabel("Altitude (km)")
+    ax.set_title("Eddy Diffusion Profile")
+    
+    savefig(savepath, format="png", bbox_inches="tight", dpi=300)
+    #savefig("/Users/nereida/Colorado Boulder/Eryn's Group/Results_Venus"*"/Keddy2_profile.png")
+end
+

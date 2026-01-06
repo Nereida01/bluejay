@@ -132,10 +132,13 @@ if converge_which == "neutrals"
     append!(no_chem_species, union(conv_ions[planet], N_neutrals)) # This is because the N chemistry is intimiately tied up with the ions.
     append!(no_transport_species, union(conv_ions[planet], N_neutrals, short_lived_species))
 elseif converge_which == "ions"
-    append!(no_chem_species, setdiff(conv_neutrals[planet], N_neutrals))
-    append!(no_transport_species, setdiff(conv_neutrals[planet], N_neutrals))
+    append!(no_chem_species, conv_neutrals[planet])
+    append!(no_transport_species, conv_neutrals[planet])
 elseif converge_which == "both"
     append!(no_transport_species, short_lived_species)
+elseif converge_which == "ions+nitrogen"
+    append!(no_chem_species, setdiff(conv_neutrals[planet], N_neutrals))
+    append!(no_transport_species, setdiff(conv_neutrals[planet], N_neutrals))
 end
 
 # Disallow transport and/or chemistry if the appropriate setting is toggled
@@ -234,12 +237,12 @@ end
 
 
 # Modify the settings if doing a special isothermal atmosphere.
-if temp_scenario=="isothermal"
-    const controltemps = [225., 225., 225.]
-    const meantemps = [225., 225., 225.] # Used for saturation vapor pressure. DON'T CHANGE!
-else # Set the exobase temp according to the temp scenario.
-    const controltemps[3] =  Texo_opts[planet][temp_scenario]
-end
+#if temp_scenario=="isothermal"
+#    const controltemps = [225., 225., 225.]
+#    const meantemps = [225., 225., 225.] # Used for saturation vapor pressure. DON'T CHANGE!
+#else # Set the exobase temp according to the temp scenario.
+#    const controltemps[3] =  Texo_opts[planet][temp_scenario]
+#end
 
 # Modify the array for the special case where multiple parameters are changed for the seasonal model
 if special_seasonal_case!=nothing 
@@ -307,7 +310,7 @@ end
 
 # Whether to install a whole new water profile or just use the initial guess with modifications (for seasonal model)
 if planet=="Venus"
-    const reinitialize_water_profile = venus_special_water==true ? true : false
+    const reinitialize_water_profile = false # venus_special_water==true ? true : false
 elseif planet=="Mars"
     const reinitialize_water_profile = seasonal_cycle==true ? false : true # should be off if trying to run simulations for seasons
 end
@@ -352,11 +355,11 @@ if planet=="Mars"
                         :D=> Dict("f"=>[0., NaN], "v"=>[NaN, effusion_velocity(Tn_arr[end], 2.0; M_P, R_P, zmax)], "ntf"=>[NaN, "see boundaryconditions()"]),
                        );
 elseif planet=="Venus"
-    const ntot_at_lowerbdy = 3.6e19 # Krasnopolsky 2012 - option for an atmosphere with lower boundary at 48 km.
+    const ntot_at_lowerbdy = 3.6e19 # (3.6e19) Krasnopolsky 2012 - option for an atmosphere with lower boundary at 48 km.
     # const ntot_at_lowerbdy = 9.5e15 # Based on Fox & Sung 2001 - option for an atmosphere with lower boundary = 90 km.
     H2O_lowerbdy = h2o_vmr_low * ntot_at_lowerbdy
     HDO_lowerbdy = hdo_vmr_low * ntot_at_lowerbdy
-    
+
     # MRs
     Armr = 98.0e-6 #  48 km (Huffman 1979) 
            # 5e11 / ntot_at_lowerbdy # 90 km - abs val of 5e11. 
@@ -498,7 +501,8 @@ end
 # -------------------------------------------------------------------
 # The shortcodes provide unique identifiers for a simulation. Necessary because you end up running the model many times...
 const hrshortcode, rshortcode = generate_code(ions_included, controltemps[1], controltemps[2], controltemps[3], water_case, solar_scenario)
-const sim_folder_name = "$(hrshortcode)_$(rshortcode)_$(tag)"
+#const sim_folder_name = "$(hrshortcode)_$(rshortcode)_$(tag)"
+const sim_folder_name = "$(rshortcode)_$(results_version)"
 const used_rxns_spreadsheet_name = "active_rxns.xlsx"
 
 
@@ -511,7 +515,7 @@ const used_rxns_spreadsheet_name = "active_rxns.xlsx"
 # Simulation run time and timestep size  
 const season_length_in_sec = seasonal_cycle==true ? season_in_sec : 1e16
 const maxlogdt = seasonal_cycle==true ? 5 : 16 # simulation will run until dt = 10^maxlogdt seconds
-const dt_min_and_max = Dict("neutrals"=>[-3, 14], "ions"=>[-4, 6], "both"=>[-3, maxlogdt])
+const dt_min_and_max = Dict("neutrals"=>[-3, 14], "ions"=>[-4, 6], "both"=>[-3, maxlogdt], "ions+nitrogen"=>[-3,14])
 const timestep_type = seasonal_cycle==true ? "log-linear" : "dynamic-log" 
     # OPTIONS: "static-log": Logarithmically spaced timesteps that are imposed and don't adjust.
     #                        Should basically never be used, but can be used for testing.

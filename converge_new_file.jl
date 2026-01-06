@@ -439,7 +439,7 @@ function record_atmospheric_state(t, n, actively_solved, E_prof; opt="", globvar
     =#
 
     GV = values(globvars)
-    @assert all(x->x in keys(GV), [:hrshortcode, :neutral_species, :ion_species, :plot_grid, :rshortcode, :speciescolor, :speciesstyle, :zmax, :alt, :num_layers])
+    @assert all(x->x in keys(GV), [:hrshortcode, :neutral_species, :ion_species, :plot_grid, :rshortcode, :speciescolor, :speciesstyle, :zmax, :alt, :num_layers, :alt, :all_species, :planet, :n_alt_index, ])
 
     # This is just to change how many decimal places to include depending if t >= 1.
     rounding_digits = t <= 1 ? Int64(ceil(abs(log10(t)))) : 0 
@@ -457,10 +457,15 @@ function record_atmospheric_state(t, n, actively_solved, E_prof; opt="", globvar
     # for Jspc in values(GV.neutral_species)
     #     plot_Jrates(Jspc, atm_snapshot, results_dir*sim_folder_name*"/Jrateplots/"; filenameext="$(plotnum)", globvars...)               
     # end 
+    
+    #Eddy Profile    
+    ncur_with_bdys = ncur_with_boundary_layers(atm_snapshot; n_alt_index, all_species)
+    plot_Keddy_prof(n_tot(ncur_with_bdys; n_alt_index, all_species), atm_snapshot, results_dir*sim_folder_name*"/eddy_profile_$(plotnum)$(opt).png";planet,alt, n_alt_index, all_species)
 
     global plotnum += 1
 end
 
+    
 #                                   Gear solver                                 #
 #===============================================================================#
 
@@ -1024,6 +1029,7 @@ if adding_new_species==true
                 n_current[nn] = reshape(readdlm("Resources/initial_profiles/$(string(nn))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
             end
         end
+        
     elseif converge_which == "ions"
         println("Converging ions. The following readout should contain the non-N-bearing neutrals: $(inactive_species)")
 
@@ -1031,9 +1037,6 @@ if adding_new_species==true
             n_current[ni] = zeros(num_layers)
         end
 
-        for nn in intersect(new_neutrals, N_neutrals)
-            n_current[nn] = zeros(num_layers)
-        end
         if use_nonzero_initial_profiles
             println("Initializing non-zero profiles for $(new_ions)")
             # first fill in the H-bearing ions from data-inspired profiles
@@ -1045,6 +1048,7 @@ if adding_new_species==true
                 n_current[ni] = DH .* n_current[ni]
             end
         end
+        
     elseif converge_which == "both" 
         if occursin("PARAMETERS-conv3", paramfile)
             println("Converging N-bearing neutrals and ions together. This list readout of inactive_species should contain non-N-bearing neutrals: $(inactive_species)")
@@ -1081,6 +1085,38 @@ if adding_new_species==true
                 n_current[ni] = DH .* n_current[ni]
             end
         end
+        
+    elseif converge_which == "ions+nitrogen"
+        println("Converging ions and nitrogen-bearing neutrals. This list read out of inacative_species should showw the other neutrals: $(inactive_species)")
+        for nn in new_neutrals
+            n_current[nn] = zeros(num_layers)
+        end
+        for ni in new_ions
+            n_current[ni] = zeros(num_layers)
+        end
+        if use_nonzero_initial_profiles
+            println("Initializing non-zero profiles for $(new_neutrals) and $(new_ions)")
+            for nn in new_neutrals
+                try
+                    n_current[nn] = reshape(readdlm("Resources/initial_profiles/$(string(nn))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
+                catch 
+                    println("No initial guess found for $(nn). Initial profile will be zero everywhere.")
+                end
+            end
+
+            for ni in setdiff(new_ions, keys(D_H_analogues))
+                try
+                    n_current[ni] = reshape(readdlm("Resources/initial_profiles/$(string(ni))_initial_profile.txt", '\r', comments=true, comment_char='#'), (num_layers,))
+                catch 
+                    println("No initial guess found for $(ni). Initial profile will be zero everywhere.")
+                end
+            end
+            
+            for ni in intersect(new_ions, keys(D_H_analogues))
+                n_current[ni] = DH .* n_current[ni]
+            end
+        end
+
     else
         throw("Uncaught exception")
     end
@@ -1088,6 +1124,7 @@ if adding_new_species==true
     for nj in newJrates
         n_current[nj] = zeros(num_layers)
     end
+
 else # Allows zeroing out the atmosphere even if not adding new species. Can be helpful if you want to test different temperature profiles
     if use_nonzero_initial_profiles==false
         for a in setdiff(all_species, [:CO2, :Ar])
@@ -1095,6 +1132,7 @@ else # Allows zeroing out the atmosphere even if not adding new species. Can be 
         end
     end
 end
+
 
 #                 Set the boundary altitude below which water is fixed          #
 #===============================================================================#
@@ -1555,6 +1593,10 @@ write_atmosphere(n_current, results_dir*sim_folder_name*"/initial_atmosphere.h5"
 # Plot initial temperature and water profiles ==================================
 plot_temp_prof(Tn_arr; savepath=results_dir*sim_folder_name, Tprof_2=Ti_arr, Tprof_3=Te_arr, alt, monospace_choice, sansserif_choice)
 
+#Plot Optical Depth =======================================
+#const solabs = optical_depth(n_current; absorber, dz, crosssection, Jratelist, num_layers, solarflux)
+#plot_extinction(solabs; path=results_dir*sim_folder_name, tauonly=true, extra_t = "Optical depth", zmax, plot_grid)
+
 # Absolute tolerance
 if problem_type == "Gear"
     const atol = 1e-12 # absolute tolerance in ppm, used by Gear solver # NOTE: I think this is actually #/cm³ not ppm, because n_i+1 - n_i is compared against it.--Eryn
@@ -1768,7 +1810,12 @@ elseif problem_type == "Gear"
     plot_atm(atm_soln, results_dir*sim_folder_name*"/final_atmosphere.png", abs_tol_for_plot, final_E_profile; ylims=[zmin/1e5, zmax/1e5],
              t="final converged state, total time = $(sim_time)", neutral_species, ion_species, plot_grid, speciescolor, speciesstyle, zmax, hrshortcode, rshortcode,
              monospace_choice, sansserif_choice)
-
+    
+    #Plot the Eddy Profile
+#    const atmdict = n_current
+#    const ncur_with_bdys = ncur_with_boundary_layers(atmdict; n_alt_index, all_species)
+#    plot_Keddy_prof(n_tot(ncur_with_bdys; n_alt_index, all_species),atmdict, results_dir*sim_folder_name*"/final_EddyProfile.png";planet,alt, n_alt_index, all_species) #need to export it in photochemistry
+    
     # Collect the J rates
     Jratedict = Dict{Symbol, Vector{Float64}}([j=>external_storage[j] for j in keys(external_storage) if occursin("J", string(j))])
 

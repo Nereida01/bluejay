@@ -188,6 +188,7 @@ plot_water_profile,
 set_rc_params,
 top_mechanisms,    
 turn_off_borders,
+plot_Keddy_prof,
 
 # ReactionNetwork.jl
     ## Load and manipulate

@@ -1942,6 +1942,8 @@ function fluxcoefs(species_list::Vector, K, D, H0; globvars...)
     return fluxcoef_dict
 end
 
+
+
 function Keddy(z::Vector, nt::Vector; globvars...)
     #=
     Input:
@@ -1957,16 +1959,34 @@ function Keddy(z::Vector, nt::Vector; globvars...)
     check_requirements(keys(GV), required)
 
     k = zeros(size(z)) # Initialize array for eddy diffusion
+    
     if GV.planet=="Mars"
+        
         upperatm = findall(i->i .> 60e5, z)
         k[findall(i->i .<= 60e5, z)] .= 10. ^ 6
         k[upperatm] .= 2e13 ./ sqrt.(nt[upperatm])
+        
     elseif GV.planet=="Venus"
-        upperatm = findall(i->i .> 116e5, z)
-        k[findall(i->i .<= 116e5, z)] .= 3.54e6 # Mahieux 2021
-        k[upperatm] .= 8e12 .* (nt[upperatm] .^ -0.5)
+        
+        df = CSV.read("/Users/nereida/Colorado Boulder/Eryn's Group/DataBase/Keddy_Krasnopolsky.csv", DataFrame)
+        df = sort(df, " y")
+        k_csv = df."x"
+        Alt = df." y" .* 1e5
+        
+        upperatm = z .> 99.96e5  
+        loweratm = z.< 59.83e5
+        middleatm = (.!upperatm) .& (.!loweratm)
+        
+        k[upperatm] .= 1e7
+        k[loweratm] .= 1e4
+        
+        itp = interpolate((Alt,), k_csv , Gridded(Linear()))
+        k[middleatm] .= itp.(z[middleatm])
+        
+        #upperatm = findall(i->i .> 116e5, z)
+        #k[findall(i->i .<= 116e5, z)] .= 3.54e6 # Mahieux 2021 (3.54e6)
+        #k[upperatm] .= 8e12 .* (nt[upperatm] .^ -0.5)        
     end
-
     return k
 end
 
@@ -2005,7 +2025,7 @@ function update_diffusion_and_scaleH(species_list, atmdict::Dict{Symbol, Vector{
     
     # Molecular diffusion is only needed for transport species, though.  
     Dcoef_dict = Dict{Symbol, Vector{ftype_ncur}}([s=>deepcopy(Dcoef!(D_coefs, GV.Tprof_for_diffusion[charge_type(s)], s, ncur_with_bdys; globvars...)) for s in species_list])
-
+    
     return K, H0_dict, Dcoef_dict
 end
 
@@ -2057,7 +2077,7 @@ function update_transport_coefficients(species_list, atmdict::Dict{Symbol, Vecto
     # transport coefficients for boundary layers
     tlower = permutedims(reduce(hcat, [bc_dict[sp][1,:] for sp in GV.transport_species]))
     tupper = permutedims(reduce(hcat, [bc_dict[sp][2,:] for sp in GV.transport_species]))
-
+    
     return tlower, tup, tdown, tupper
 end
 

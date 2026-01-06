@@ -20,7 +20,7 @@ const planet = "Venus"
 # Input and output files, directory
 # =======================================================================================================
 const results_dir = code_dir*"../Results_$(planet)/"
-const initial_atm_file = "$(planet)-Inputs/Venus_with_chlorine_48km.h5"
+const initial_atm_file = "$(planet)-Inputs/KEddy_OCS_final.h5"
     # OPTIONS: 
     # INITIAL_GUESS_MARS.h5 --> Basic Mars starting file.
     # INITIAL_GUESS_MARS_bxz4YnHk.h5 --> A Mars atmosphere that includes N2O, NO2, and their ions;
@@ -34,7 +34,7 @@ const reaction_network_spreadsheet = code_dir*"$(planet)-Inputs/REACTION_NETWORK
 # Descriptive attributes of this model run
 # =======================================================================================================
 const optional_logging_note = "Enter a logging note here" # Brief summary of simulation goal
-const results_version = "v0"  # Helps keep track of attempts if you need to keep changing things
+const results_version = "Krasnopolsky_KEddy_final_01_05_2026"  # Helps keep track of attempts if you need to keep changing things
 
 # Set the modifiable atmospheric parameters
 # =======================================================================================================
@@ -103,7 +103,7 @@ const HDO_excess = 0.350 # excess HDO in ppm (divide by 1000 to get ppb)
 
 const ions_included = true
 const converge_which = "both"
-    # OPTIONS: "ions", "neutrals", "both"
+    # OPTIONS: "ions", "neutrals", "both", "ions+nitrogen"
 
 # Species lists
 # -------------------------------------------------------------------
@@ -133,7 +133,8 @@ const conv_neutrals = Dict("Mars"=>[:Ar, :C, :CO, :CO2, # Argon and carbon speci
                                     :H2O2, :HDO2, :HOCO, :DOCO, 
                                     :N, :N2, :NO, :Nup2D, :N2O, :NO2, # Nitrogen species
                                     :O, :O1D, :O2, :O3, :OH, :OD], # Oxygen species
-                           "Venus"=>[
+                           "Venus"=>[   
+   
                                      # Ar itself
                                      :Ar,
         
@@ -149,7 +150,7 @@ const conv_neutrals = Dict("Mars"=>[:Ar, :C, :CO, :CO2, # Argon and carbon speci
 
                                      # N species
                                      :N, :N2, :NO, :Nup2D, :N2O, :NO2,
-                                     # :HO2NO2, :DO2NO2,
+                                     #:HO2NO2, :DO2NO2,
 
                                      # O species
                                      :O2,
@@ -159,16 +160,17 @@ const conv_neutrals = Dict("Mars"=>[:Ar, :C, :CO, :CO2, # Argon and carbon speci
                                      # Chlorine species
                                      :Cl, :Cl2, :HCl, :DCl,
                                      :ClO, :COCl2, :ClCO, :ClO2, :ClCO3,
-                                     # :ClNO,
+                                     #:ClNO,
         
                                      # Sulfur species
-                                     # :S, :S2, :S3,
-                                     # :SO, :SO2, :SO3, :H2SO4, :HDSO4, :HSO3, :DSO3,
-                                     # :SNO,  :S2O, :S2O2, :OCS,
+                                     :S, :SO, :SO2, :SO3, :H2SO4, :HDSO4, :OCS,
+                                     #:S, :S2, :S3,
+                                     #:SO, :SO2, :SO3, :H2SO4, :HDSO4, :HSO3, :DSO3,
+                                     #:SNO,  :S2O, :S2O2, :OCS,
 
                                      # Cl and S species
-                                     # :SCl, :SCl2, :S2Cl2, :ClS2,
-                                     # :OSCl, :ClSO2, :SO2Cl2,
+                                     #:SCl, :SCl2, :S2Cl2, :ClS2,
+                                     #:OSCl, :ClSO2, :SO2Cl2,
                                     ]);
 
 
@@ -180,21 +182,22 @@ const conv_ions = Dict("Mars"=>[:Arpl, :ArHpl, :ArDpl,
                                 :HO2pl, :HCOpl, :HCO2pl, :HOCpl, :HNOpl,   
                                 :Npl, :NHpl, :N2pl, :N2Hpl, :N2Dpl, :NOpl, :N2Opl, :NO2pl,
                                 :Opl, :O2pl, :OHpl, :ODpl],
-                       "Venus"=>[
-                                :CO2pl, :H2Opl, :HDOpl, :COpl, :O2pl, :Hpl, :Dpl, :Opl, :H2pl, :HDpl,
+                       "Venus"=>[              
+                                :CO2pl, :H2Opl, :HDOpl, :COpl, :O2pl, :Hpl, :Dpl, :Opl, :H2pl,                                                           :HDpl,
                                 :ArHpl, :ArDpl, :Arpl,
                                 :N2pl,
                                 :Cpl, 
                                 :CHpl, 
                                 :DCOpl, :DOCpl, :DCO2pl, 
                                 :H3pl, :H2Dpl, 
-                                :H3Opl, :H2DOpl, 
+                                :H3Opl, 
+                                :H2DOpl, 
                                 :HO2pl, 
                                 :HCOpl, :HCO2pl, :HOCpl,
                                 :Npl, :NHpl, :N2Hpl, :N2Dpl, :HNOpl,
                                 :NOpl, 
                                 :N2Opl, :NO2pl,
-                                :OHpl, :ODpl
+                                :OHpl, :ODpl,
                                 ]);
 
 # More specific settings for controling the modeling of species
@@ -205,16 +208,16 @@ const dont_compute_transport = []
 const dont_compute_either_chem_or_transport = []  
     # OPTIONS: Any species included in the model. 
 if planet=="Mars" # To avoid convergence problems
-    append!(:Ar, dont_compute_either_chem_or_transport)
+    append!(dont_compute_either_chem_or_transport, [:Ar])
 elseif planet=="Venus"
-    append!(:Ar, dont_compute_chemistry)
+    append!(dont_compute_chemistry, [:Ar])
 end
     
 const assume_photochem_eq = false # whether to turn on photochemical equilibrium for short-lived species
 
 # Turn plots off and on
 # =======================================================================================================
-const make_P_and_L_plots = true  # Makes a 3-panel plot showing production and loss due to 1) chemistry, 
+const make_P_and_L_plots = false  # Makes a 3-panel plot showing production and loss due to 1) chemistry, 
                                  # 2) transport, 3) sum of both. Turn off to save several minutes of 
                                  # runtime if you don't need to check for equilibrium.
     # OPTIONS: True, false
@@ -226,7 +229,7 @@ const abs_tol = 1e-12
 
 # Helpful options for adding new things to the model 
 # =======================================================================================================
-const do_chem = true   # Turning this or next one of will toggle chemistry or transport.
+const do_chem = true  # Turning this or next one of will toggle chemistry or transport.
 const do_trans = true  # Often useful for troubleshooting or converging new atmospheres.
 const adding_new_species = false
 const make_new_alt_grid = false  # Set to true if extending the altitude grid. if true values for old_zmin and old_zmax in km will be needed to be input below
