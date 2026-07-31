@@ -62,14 +62,14 @@ const special_seasonal_case = nothing
 # interpret that choice and justify your choices when you write up the paper.
 const temp_scenario = "mean"  # Temperature selection for the seasonal model run.
     # OPTIONS: 
-    # min-P2, mean-P2, max-P2: uses exobase temps from Cangi+2023 (190, 210, 280) K.
+    # min-P2, mean-P2, max-P2: uses exobase temps from Cangi+2023 (190, 210, 280) K. **Use this
     # mean, min, max: temps as in Cangi+ 2024 (175, 225, 275) K - goal for this one was evenly spaced.
     # isothermal (this will set a constant temperature at all alts - 225 K)
 
 # Solar case
 # -------------------------------------------------------------------
 const SZA = 60  # Puts the model at dayside mean. Enter in degrees please.
-const solar_scenario = "solarmean" 
+const solar_scenario = "solarmean" #solarmean for normal model
     # Solar scenario definition. You can choose from different Mars-sun distances or parts of the solar cycle.
     # ORBITAL DISTANCE OPTIONS: "perihelion" #  "meansundist" # "aphelion"; these are defined at solar mean. 
     #     NOTE: these options are only available for Mars at present.
@@ -205,7 +205,7 @@ const conv_ions = Dict("Mars"=>[:Arpl, :ArHpl, :ArDpl,
 # Chemical species which should never update their densities, but may be chemical reactants.
 const dont_compute_chemistry = []
 const dont_compute_transport = []
-const dont_compute_either_chem_or_transport = []  
+const dont_compute_either_chem_or_transport = [:H2O] #include H2SO4, H2O for venus here 
     # OPTIONS: Any species included in the model. 
 if planet=="Mars" # To avoid convergence problems
     append!(dont_compute_either_chem_or_transport, [:Ar])

@@ -292,7 +292,8 @@ if planet=="Mars"
                            "everywhere"=>Dict("standard"=>1.3e-4, "high"=>1.3e-4, "low"=>1.3e-4))
     const water_mixing_ratio = water_MRs[water_loc][water_case]
 elseif planet=="Venus"
-    const water_mixing_ratio = Dict("standard"=>1e-6)[water_case] # parse(Float64, water_case) # this is for 90km
+    #const water_mixing_ratio = Dict("standard"=>1e-6)[water_case] # parse(Float64, water_case) # this is for 90km
+     const water_mixing_ratio = Dict("standard"=>21e-6)[water_case] #Krasnopolsky(2012) for 47km
 
     # SPECIAL: Crazy water Mahieux & Viscardy 2024
     if venus_special_water
@@ -378,14 +379,14 @@ elseif planet=="Venus"
     # Simon's notes: Krasnopolsky, 2010a: this was 400ppb at 74km in altitude, and the actual number is likely lower 
     # (is either 4.0E-7, or 4.8E-7 depending on the calculation); and according to Zhang 2012 it is 3.66e-7
     SOmr = 1e-7
-
+   
     
     const KoverH_lowerbdy = Keddy([zmin], [ntot_at_lowerbdy]; planet)[1]/scaleH_lowerboundary(zmin, Tn_arr[1]; molmass, M_P, R_P, zmin)
     const manual_speciesbclist=Dict(# major species neutrals at lower boundary (estimated from Fox&Sung 2001, Hedin+1985, agrees pretty well with VIRA)
                                     :CO2=>Dict("n"=>[CO2mr*ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
                                     :Ar=>Dict("n"=>[Armr * ntot_at_lowerbdy, NaN], "f"=>[NaN, 0.]),
                                     :CO=>Dict(#"n"=>[COmr*ntot_at_lowerbdy, NaN],  # 90 km bc
-                                              "v"=>[-KoverH_lowerbdy*0.1, NaN], # 48 km bc (Kras 2012)
+                                              "v"=>[-(KoverH_lowerbdy)*0.1, NaN], # 48 km bc (Kras 2012)
                                               "f"=>[NaN, 0.]),
                                     :O2=>Dict(#"n"=>[O2mr*ntot_at_lowerbdy, NaN], # Lower bc used at 90 km
                                               "v"=>[-KoverH_lowerbdy*2, NaN], # 48 km lower boundary condition (Krasnopolsky 2012)
@@ -515,7 +516,7 @@ const used_rxns_spreadsheet_name = "active_rxns.xlsx"
 # Simulation run time and timestep size  
 const season_length_in_sec = seasonal_cycle==true ? season_in_sec : 1e16
 const maxlogdt = seasonal_cycle==true ? 5 : 16 # simulation will run until dt = 10^maxlogdt seconds
-const dt_min_and_max = Dict("neutrals"=>[-3, 14], "ions"=>[-4, 6], "both"=>[-3, maxlogdt], "ions+nitrogen"=>[-3,14])
+const dt_min_and_max = Dict("neutrals"=>[-3, 14], "ions"=>[-4, 6], "both"=>[-3, maxlogdt], "ions+nitrogen"=>[-3,6])
 const timestep_type = seasonal_cycle==true ? "log-linear" : "dynamic-log" 
     # OPTIONS: "static-log": Logarithmically spaced timesteps that are imposed and don't adjust.
     #                        Should basically never be used, but can be used for testing.

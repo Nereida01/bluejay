@@ -1980,12 +1980,14 @@ function Keddy(z::Vector, nt::Vector; globvars...)
         k[upperatm] .= 1e7
         k[loweratm] .= 1e4
         
-        itp = interpolate((Alt,), k_csv , Gridded(Linear()))
-        k[middleatm] .= itp.(z[middleatm])
+        itp = interpolate((Alt,), log10.(k_csv) , Gridded(Linear()))
+        k[middleatm] .= 10 .^ itp.(z[middleatm])
+#=        
+        upperatm = findall(i->i .> 116e5, z)
+        k[findall(i->i .<= 116e5, z)] .= 3.54e6 # Mahieux 2021 (3.54e6)
+        k[upperatm] .= 8e12 .* (nt[upperatm] .^ -0.5) 
+=#
         
-        #upperatm = findall(i->i .> 116e5, z)
-        #k[findall(i->i .<= 116e5, z)] .= 3.54e6 # Mahieux 2021 (3.54e6)
-        #k[upperatm] .= 8e12 .* (nt[upperatm] .^ -0.5)        
     end
     return k
 end

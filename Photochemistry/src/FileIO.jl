@@ -277,8 +277,8 @@ function load_from_paramlog(folder; quiet=true, globvars...)
         global zmax = get_param("zmax", df_altinfo)
         global n_all_layers = get_param("n_all_layers", df_altinfo)
         global num_layers = get_param("num_layers", df_altinfo)
-        global upper_lower_bdy = get_param("upper_lower_bdy", df_altinfo)
-        global upper_lower_bdy_i = get_param("upper_lower_bdy_i", df_altinfo)
+        global upper_lower_bdy = Int(get_param("upper_lower_bdy", df_altinfo))
+        global upper_lower_bdy_i = Int(get_param("upper_lower_bdy_i", df_altinfo))
     else 
         # In this case, alt should have been passed in manually.
         global non_bdy_layers = alt[2:end-1]

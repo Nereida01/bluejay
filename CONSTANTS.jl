@@ -22,7 +22,7 @@ const SMOW = 1.6e-4             # Standard mean ocean water
 # Polarizability from NIST. Experimental values from: https://cccbdb.nist.gov/pollistx.asp
 # Calculations for species not available in experiment from: https://cccbdb.nist.gov/polcalc2x.asp
 # Deuterated species not listed in either are estimated by me to be the same as their H-bearing analogue.
-# I used the calcualtions that use "Density functional", "aug-cc-PVDZ", and "mPW1PW91" 
+# I used the calcualtions that use "Density functional", "aug-cc-PVDZ", and "mPW1PW91"
 # because that was the method that gave the closest answer for HD to the experimental value. 
 # I have no idea what any of it means or whether it's reasonable. I'm not a quantum chemist.
 # Values are given in cm^3
@@ -30,7 +30,7 @@ const polarizability = Dict(# Values available from experiment
                             :Ar=>1.664e-24, :C=>1.760e-24,  :CO=>1.953e-24,  :CO2=>2.507e-24, 
                             :H=>0.667e-24,  :H2=>0.8023e-24, # H2 source: Yoon 2010 <-- Kusakabe+ 2004, Phys. Rev. A
                             :H2O=>1.501e-24, :HCN=>2.593e-24, :HD=>0.7976e-24, # HD source: Yoon 2010 <-- Kusakabe+ 2004, Phys. Rev. A
-                            :N=>1.1e-24,    :N2=>1.710e-24, :N2O=>2.998e-24, :NO=>1.698e-24, :NO2=>2.910e-24, 
+                            :N=>1.1e-24,    :N2=>1.710e-24, :N2O=>2.998e-24, :NO=>1.698e-24, :NO2=>2.910e-24, :NO3=>3.039e-24,
                             :O=>0.802e-24,  :O2=>1.59e-24,  :O3=>3.079e-24, 
 
                             # Values from calculation
@@ -119,7 +119,7 @@ const molmass = Dict(:H=>1, :Hpl=>1,
                      :HDSO4=>99, :COCl2=>99,
                      :SCl2=>103,
                      :ClSO2=>100, :ClS2=>100,
-                     :SO2Cl2=>135, :S2Cl2=>135, 
+                     :SO2Cl2=>135, :S2Cl2=>135, :NO3=>62, :HO2NO2=>79 
                      )
 
 #= Some links for molecular diameters 

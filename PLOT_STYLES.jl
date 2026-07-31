@@ -63,7 +63,7 @@ const speciescolor = Dict( # PRIMARY NEUTRALS + IONS
                     :NO=>"#e639b1",:NOpl=>"#e639b1",
                     :NO2=>"#a492e5", :NO2pl=>"#a492e5",  
                     :N2Hpl=>"#611115",:N2Dpl=>"#611115",
-                    :HO2NO2=>"#FF3232", :DO2NO2=>"#FF3232",
+                    :HO2NO2=>"#FF3232", :DO2NO2=>"#FF3232", :NO3=>"#42f55a",
 
                     # Chlorine species
                     :Cl=>"#2EE4EC", :Cl2=>"#89FAD6",

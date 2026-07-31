@@ -125,9 +125,18 @@ function populate_xsect_dict(pd_dataf, xsecfolder; ion_xsects=true, globvars...)
     xsect_dict[get_Jrate_symb("O2", ["O", "O"])] = map(xs->quantumyield(xs,((x->x>175, 1),)), map(t->o2xsect(o2xdata, o2schr130K, o2schr190K, o2schr280K, t), GV.Tn))
 
     # O2+hv->O+O1D
-    xsect_dict[get_Jrate_symb("O2", ["O", "O1D"])] = map(xs->quantumyield(xs,((x->x<175, 1),)), map(t->o2xsect(o2xdata, o2schr130K, o2schr190K, o2schr280K, t), GV.Tn))
-
-
+    xsect_dict[get_Jrate_symb("O2", ["O1D", "O"])] = map(xs->quantumyield(xs,((x->x<175, 1),)), map(t->o2xsect(o2xdata, o2schr130K, o2schr190K, o2schr280K, t), GV.Tn))
+    
+    # NO3 photodissociation ----------------------------------------------------------
+   
+    # NO3 -> NO2+O
+    thisjr = get_Jrate_symb("NO3", ["NO2", "O"])
+    xsect_dict[thisjr] = fill(readdlm(xsecfolder*"$(thisjr).csv",',',Float64, comments=true, comment_char='#'), GV.n_all_layers)
+        
+    #NO3 -> NO+O2
+    thisjr = get_Jrate_symb("NO3", ["NO", "O2"])
+    xsect_dict[thisjr] = fill(readdlm(xsecfolder*"$(thisjr).csv",',',Float64, comments=true, comment_char='#'), GV.n_all_layers)
+            
     # O3 photodissociation ---------------------------------------------------------
     # O3+hv->O2+O
     xsect_dict[get_Jrate_symb("O3", ["O2", "O"])] = map(t->quantumyield(o3xdata,
@@ -266,15 +275,22 @@ function populate_xsect_dict(pd_dataf, xsecfolder; ion_xsects=true, globvars...)
                                                                          (l->190.7<=l<230, 0.75),
                                                                          (l->230<=l<460, 0),
                                                                         )), GV.Tn)
+    # Sulfur Photodissociation -------------------------------------------------------
+    
+    #S2O+hv -> SO+S
+    #thisjr = get_Jrate_symb("S2O", ["SO", "S"])
+    #xsect_dict[thisjr] = fill(readdlm(xsecfolder*"$(thisjr).csv",',',Float64, comments=true, comment_char='#'), GV.n_all_layers)
+    
 
     # The following reactions have associated files listing cross sections.
     # TODO: Ideally this should not be hard coded in; ought to be passed in based on the reaction spreadsheet.
-    reactant_product_sets = Dict("CO2"=>[["CO2pl"], ["CO2plpl"], ["Cplpl", "O2"], ["Cpl", "O2"], ["COpl", "Opl"], ["COpl", "O"], ["Opl", "CO"], ["Opl", "Cpl", "O"], ["C", "O", "O"], ["C", "O2"]],
+    reactant_product_sets = Dict("CO2"=>[["CO2pl"], ["CO2plpl"], ["Cplpl", "O2"], ["Cpl", "O2"], ["COpl", "Opl"], ["COpl", "O"], ["Opl", "CO"], ["Opl", "Cpl", "O"], ["C", "O", "O"], ["C", "O2"],["O1D","CO"]],
                                  "CO"=>[["COpl"],  ["C", "Opl"],  ["O", "Cpl"], ["C", "O"]],
                                  "H2O"=>[["H2Opl"], ["Opl", "H2"], ["Hpl", "OH"], ["OHpl", "H"]],
                                  "HDO"=>[["HDOpl"], ["Opl", "HD"], ["Hpl", "OD"],  ["Dpl", "OH"], ["OHpl", "D"],  ["ODpl", "H"]],
                                  "N2"=>[["N2pl"], ["Npl", "N"]],
                                  "NO2"=>[["NO2pl"], ["NO", "O"]],
+                                 "NO3"=>[["NO2","O"], ["NO","O2"]],   
                                  "NO"=>[["NOpl"], ["N", "O"]],
                                  "N2O"=>[["N2Opl"], ["N2", "O1D"]],
                                  "HO2NO2"=>[["HO2","NO2"]],
@@ -286,7 +302,7 @@ function populate_xsect_dict(pd_dataf, xsecfolder; ion_xsects=true, globvars...)
                                  "H2O2"=>[["H2O2pl"]],
                                  "HDO2"=>[["HDO2pl"]],
                                  "O"=>[["Opl"]],
-                                 "O2"=>[["O2pl"]],
+                                 "O2"=>[["O2pl"],["O","O1D"]],
                                  "O3"=>[["O3pl"]],
 
                                
@@ -299,6 +315,7 @@ function populate_xsect_dict(pd_dataf, xsecfolder; ion_xsects=true, globvars...)
                                 "ClCO3"=>[["CO2","ClO"]],
                                 "COCl2"=>[["ClCO","Cl"]],
                                 "ClNO"=>[["Cl","NO"]],
+                                "Cl2"=>[["Cl","Cl"]],
         
         
         #S containing species

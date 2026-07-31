@@ -439,7 +439,8 @@ function record_atmospheric_state(t, n, actively_solved, E_prof; opt="", globvar
     =#
 
     GV = values(globvars)
-    @assert all(x->x in keys(GV), [:hrshortcode, :neutral_species, :ion_species, :plot_grid, :rshortcode, :speciescolor, :speciesstyle, :zmax, :alt, :num_layers, :alt, :all_species, :planet, :n_alt_index, ])
+    
+    @assert all(x->x in keys(GV), [:hrshortcode, :neutral_species, :ion_species, :plot_grid, :rshortcode, :speciescolor, :speciesstyle, :zmax, :num_layers, :alt, :all_species, :planet, :n_alt_index, :collision_xsect, :dz, :molmass, :monospace_choice, :M_P, :non_bdy_layers, :R_P, :sansserif_choice, :Tn, :Ti, :Te])
 
     # This is just to change how many decimal places to include depending if t >= 1.
     rounding_digits = t <= 1 ? Int64(ceil(abs(log10(t)))) : 0 
@@ -459,8 +460,8 @@ function record_atmospheric_state(t, n, actively_solved, E_prof; opt="", globvar
     # end 
     
     #Eddy Profile    
-    ncur_with_bdys = ncur_with_boundary_layers(atm_snapshot; n_alt_index, all_species)
-    plot_Keddy_prof(n_tot(ncur_with_bdys; n_alt_index, all_species), atm_snapshot, results_dir*sim_folder_name*"/eddy_profile_$(plotnum)$(opt).png";planet,alt, n_alt_index, all_species)
+    #ncur_with_bdys = ncur_with_boundary_layers(atm_snapshot; n_alt_index, all_species)
+    #plot_Keddy_prof(n_tot(ncur_with_bdys; n_alt_index, all_species), atm_snapshot, results_dir*sim_folder_name*"/eddy_profile_$(plotnum)$(opt).png";planet,alt, n_alt_index, all_species)
 
     global plotnum += 1
 end
@@ -662,7 +663,8 @@ function get_rates_and_jacobian(n, p, t; globvars...)
     # Update Jrates
     n_cur_all = compile_ncur_all(n, n_short, GV.n_inactive; GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
 
-    update_Jrates!(n_cur_all; GV.Jratelist, GV.crosssection, GV.num_layers, GV.absorber, GV.dz, GV.solarflux)
+    #update_Jrates!(n_cur_all; GV.Jratelist, GV.crosssection, GV.num_layers, GV.absorber, GV.dz, GV.solarflux)
+    update_Jrates!(n_cur_all; GV.Jratelist, GV.crosssection, GV.num_layers, GV.absorber, GV.dz, GV.solarflux, GV.non_bdy_layers)
     # copy all the Jrates into an external dictionary for storage
     for jr in GV.Jratelist                # time for this is ~0.000005 s
         global external_storage[jr] = n_cur_all[jr]
@@ -946,8 +948,9 @@ function update!(n_current::Dict{Symbol, Array{ftype_ncur, 1}}, t, dt; abstol=1e
     n_current = compile_ncur_all(nend, n_short, GV.n_inactive; GV.active_longlived, GV.active_shortlived, GV.inactive_species, GV.num_layers)
 
     # ensure Jrates are included in n_current
-    update_Jrates!(n_current; GV.Jratelist, GV.crosssection, GV.num_layers, GV.absorber, GV.dz, GV.solarflux)
-
+    #update_Jrates!(n_current; GV.Jratelist, GV.crosssection, GV.num_layers, GV.absorber, GV.dz, GV.solarflux)
+    update_Jrates!(n_current; GV.Jratelist, GV.crosssection, GV.num_layers, GV.absorber, GV.dz, GV.solarflux, GV.non_bdy_layers)
+    
     return n_current
 end 
 
